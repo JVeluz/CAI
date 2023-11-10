@@ -6,7 +6,6 @@ declare const DmnModdle: any;
 
 const dmnModdle = new DmnModdle();
 
-
 async function readXML(file: File) {
   const xml: string = await file.text();
   const dmn_file: DMN_file = {file_name: file.name, file_content: xml};
@@ -25,7 +24,6 @@ async function viewXML(xml: string) {
     console.error(error);
   }
 }
-
 async function readJSON(file: File) {
   const json: string = await file.text();
   try {
@@ -38,15 +36,13 @@ async function readJSON(file: File) {
     console.error(error);
   }
 }
-
 function viewJSON(HTMLElementId: string, json: string) {
   let inputElement: HTMLElement|null = document.getElementById(HTMLElementId);
   if (inputElement)
     inputElement.innerHTML = json;
 }
-
 function evaluateMe(me: ModdleElement): null|{[id: string]: string} {
-  console.log(me);
+  // console.log(me);
   
   if (is_DMN_Decision(me)) {
     const {input, output, rule} = me.decisionLogic;
@@ -80,77 +76,72 @@ function evaluateMe(me: ModdleElement): null|{[id: string]: string} {
   return null;
 }
 
-function evaluateDMN(): null|{[id: string]: string} { 
-  const root: DMN_Definitions = window.history.state.data.me;
-  console.log(root);
-
-  const output = evaluateMe(root.drgElement[0]);
-  if (!output)
+function evaluateDMN() { 
+  const dmn_data   = window.history.state?.data;
+  const input_data = window.history.state?.input_data;
+  if (!(dmn_data && input_data))
     return null;
   
-  return output;
+  const root: DMN_Definitions = window.history.state.data.me;
+  console.log(root);
+  
+  const output_data = evaluateMe(root.drgElement[0]);  
+  viewJSON("output", JSON.stringify(output_data));
+  window.history.replaceState({
+    ...window.history.state,
+    output_data
+  }, "");
+  document.getElementById("download-overlay")!.hidden = false;
 }
 
-async function fileHandeler(file: File) {
-  const data = await file.text();
-  const file_ext: string = file.name.split(".")[file.name.split(".").length-1];    
-  switch (file_ext) {
-    case "dmn":
-      await readXML(file);
-      viewXML(data);
-      break;
-    case "json":
-      await readJSON(file);
-      viewJSON("input", data);
-      break;
-    default:
-      break;
-  }
+async function fileHandeler(files: FileList) {
+  for (let i=0; i<files.length; i++) {
+    const file: File|null = files.item(i);
+    if (!file) break;
 
-  const dmn_data   = window.history.state.data || null;
-  const input_data = window.history.state.input_data || null;
-  if (dmn_data && input_data) {
-    const output_data = JSON.stringify(evaluateDMN());
-    viewJSON("output", output_data);
-    document.getElementById("download-overlay")!.hidden = false;
+    const data = await file.text();
+    const file_ext: string = file.name.split(".")[file.name.split(".").length-1];    
+    switch (file_ext) {
+      case "dmn":
+        await readXML(file);
+        viewXML(data);
+        break;
+      case "json":
+        await readJSON(file);
+        viewJSON("input", data);
+        break;
+      default:
+        break;
+    }
   }
 }
       
-document.getElementById("file-upload")!.addEventListener("change", (ev: Event) => {
+document.getElementById("file-upload")!.addEventListener("change", async (ev: Event) => {
   const target: any = ev.target;  
-  const files: FileList = target.files;
-  
-  for (let i=0; i<files.length; i++) {
-    const file: File|null = files.item(i);
-    if (file)
-      fileHandeler(file);
-  }
+  const files: FileList = target.files;  
+  await fileHandeler(files);
+  evaluateDMN();
 });
 
 window.addEventListener("drop", async (ev: DragEvent) => {
   ev.preventDefault();
-  
   if (!ev.dataTransfer?.items)
     return;
-
-  [...ev.dataTransfer.items].forEach((item: DataTransferItem) => {
-    const file: File|null = item.getAsFile();
-    if (file)
-      fileHandeler(file);
-  });
+  const files: FileList = ev.dataTransfer.files;  
+  await fileHandeler(files);
+  evaluateDMN();
 });
-
 window.addEventListener("dragover", (ev: DragEvent) => {
   ev.preventDefault();
 });
-
 window.addEventListener("load", () => {
-  const dmn_data = window.history.state.data || null;
+  const dmn_data = window.history.state?.data;
   if (dmn_data)
     viewXML(dmn_data.file_content);
-  const input_data = window.history.state.input_data || null;
+  const input_data = window.history.state?.input_data;
   if (input_data)
     viewJSON("input", JSON.stringify(input_data));
-  if (dmn_data && input_data)
-    viewJSON("output", JSON.stringify(evaluateDMN()));
+  const output_data = window.history.state?.output_data;
+  if (output_data)
+    viewJSON("output", JSON.stringify(output_data));
 });
