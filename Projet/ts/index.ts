@@ -1,5 +1,5 @@
 import { unaryTest, evaluate } from "feelin";
-import { DMN_DecisionRule, DMN_Definitions, DMN_UnaryTests, DMN_data, DMN_file, ModdleElement, Set_current_diagram, is_DMN_Decision} from "./DMN-JS"
+import { DMN_Decision, DMN_DecisionRule, DMN_DecisionTable, DMN_Definitions, DMN_InformationRequirement, DMN_UnaryTests, DMN_data, DMN_file, ModdleElement, Set_current_diagram, is_DMN_Decision, is_DMN_InputData} from "./DMN-JS"
 
 declare const DmnJS: any;
 declare const DmnModdle: any;
@@ -41,36 +41,55 @@ function viewJSON(HTMLElementId: string, json: string) {
   if (inputElement)
     inputElement.innerHTML = json;
 }
-function evaluateMe(me: ModdleElement): null|{[id: string]: string} {
-  // console.log(me);
-  
-  if (is_DMN_Decision(me)) {
-    const {input, output, rule} = me.decisionLogic;
 
-    for (let i=0; i<rule.length; i++) {
-      const decision_rule: DMN_DecisionRule = rule[i];
-      let rule_fulffiled: boolean = true;
 
-      let j=0;
-      while (j<decision_rule.inputEntry.length && rule_fulffiled) {
-        const unary_tests: DMN_UnaryTests =  decision_rule.inputEntry[j];
-        const text: string|undefined = input[j].inputExpression?.text;
-        if (unary_tests.text !== "" && text) {
-          const input_data = window.history.state.input_data;
-          const context = {[text]: input_data[text]};
-          
-          //console.log(`${text} =? ${unary_tests.text}`, `{${text}: ${input_data[text]}}`);
-          let evaluation: boolean|null = unaryTest(`${text} = ${unary_tests.text}`, context);
-          if (evaluation === null)
-            evaluation = evaluate(`${text} ${unary_tests.text}`, context);
-          //console.log("evaluation: ", evaluation);
-          if (!evaluation)
-            rule_fulffiled = false;
-        }
-        j++;
+function evaluateMe(me: DMN_Decision, input_data: {[id: string]: string} = {}): null|{[id: string]: string} {
+  console.log(me.name, input_data);
+  const root: DMN_Definitions = window.history.state.data.me;
+
+  const {input, output, rule} = me.decisionLogic;
+
+  me.informationRequirement?.forEach((me: DMN_InformationRequirement) => {
+    let refId: string|null = null;
+    if (me.requiredDecision)
+      refId = me.requiredDecision.href.slice(1);
+    if (me.requiredInput)
+      refId = me.requiredInput.href.slice(1);
+      
+    if (!input_data[refId!]) {
+      const refMe: ModdleElement|undefined = root.drgElement.find((me: ModdleElement) => me.id === refId);
+      if (refMe) {
+        if (is_DMN_Decision(refMe))
+          input_data = {...input_data, ...evaluateMe(refMe, input_data)};
       }
-      if (rule_fulffiled)
-        return {[me.id]: decision_rule.outputEntry[0].text};
+    }
+  });
+  
+  for (let i=0; i<rule.length; i++) {
+    const decision_rule: DMN_DecisionRule = rule[i];
+    let rule_fulffiled: boolean = true;
+
+    let j=0;
+    while (j<decision_rule.inputEntry.length && rule_fulffiled) {
+      const unary_tests: DMN_UnaryTests =  decision_rule.inputEntry[j];
+      const text: string|undefined = input[j].label.toLocaleLowerCase();
+      if (unary_tests.text !== "" && text) {
+        const context = {[text]: input_data[text]};
+        
+        console.log(`${text} =? ${unary_tests.text}`, `{${text}: ${input_data[text]}}`);
+        let evaluation: boolean|null = unaryTest(`${text} = ${unary_tests.text}`, context);
+        if (evaluation === null)
+          evaluation = evaluate(`${text} ${unary_tests.text}`, context);
+        console.log("evaluation: ", evaluation);
+        if (!evaluation)
+          rule_fulffiled = false;
+      }
+      j++;
+    }
+    if (rule_fulffiled) {
+      console.log("Out: ", me.name, input_data, decision_rule.outputEntry[0].text.replace('"', "").replace('"', ""));
+      
+      return {[me.name.toLocaleLowerCase()]: decision_rule.outputEntry[0].text.replace('"', "").replace('"', "")};
     }
   }
   return null;
@@ -82,10 +101,18 @@ function evaluateDMN() {
   if (!(dmn_data && input_data))
     return null;
   
-  const root: DMN_Definitions = window.history.state.data.me;
+  const root: DMN_Definitions = dmn_data.me;
   console.log(root);
   
-  const output_data = evaluateMe(root.drgElement[0]);  
+  let output_data: {[id: string]: string} = {};
+  root.drgElement.forEach((me: ModdleElement) => {
+    if (is_DMN_Decision(me)) {
+      console.log("--------------------");
+      
+      output_data = {...output_data, ...evaluateMe(me, input_data)};
+    }
+  });
+
   viewJSON("output", JSON.stringify(output_data));
   window.history.replaceState({
     ...window.history.state,
@@ -93,6 +120,8 @@ function evaluateDMN() {
   }, "");
   document.getElementById("download-overlay")!.hidden = false;
 }
+
+
 
 async function fileHandeler(files: FileList) {
   for (let i=0; i<files.length; i++) {
