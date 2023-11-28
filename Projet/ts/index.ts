@@ -1,5 +1,5 @@
 import { unaryTest, evaluate } from "feelin";
-import { DMN_Decision, DMN_DecisionRule, DMN_DecisionTable, DMN_Definitions, DMN_InformationRequirement, DMN_UnaryTests, DMN_data, DMN_file, ModdleElement, Set_current_diagram, is_DMN_Decision, is_DMN_InputData} from "./DMN-JS"
+import { DMN_DecisionRule, DMN_Definitions, DMN_InformationRequirement, DMN_UnaryTests, DMN_data, DMN_file, ModdleElement, Set_current_diagram, is_DMN_Decision} from "./DMN-JS"
 
 declare const DmnJS: any;
 declare const DmnModdle: any;
@@ -42,57 +42,11 @@ function viewJSON(HTMLElementId: string, json: string) {
     inputElement.innerHTML = json;
 }
 
-
-function evaluateMe(me: DMN_Decision, input_data: {[id: string]: string} = {}): null|{[id: string]: string} {
-  console.log(me.name, input_data);
-  const root: DMN_Definitions = window.history.state.data.me;
-
-  const {input, output, rule} = me.decisionLogic;
-
-  me.informationRequirement?.forEach((me: DMN_InformationRequirement) => {
-    let refId: string|null = null;
-    if (me.requiredDecision)
-      refId = me.requiredDecision.href.slice(1);
-    if (me.requiredInput)
-      refId = me.requiredInput.href.slice(1);
-      
-    if (!input_data[refId!]) {
-      const refMe: ModdleElement|undefined = root.drgElement.find((me: ModdleElement) => me.id === refId);
-      if (refMe) {
-        if (is_DMN_Decision(refMe))
-          input_data = {...input_data, ...evaluateMe(refMe, input_data)};
-      }
-    }
-  });
-  
-  for (let i=0; i<rule.length; i++) {
-    const decision_rule: DMN_DecisionRule = rule[i];
-    let rule_fulffiled: boolean = true;
-
-    let j=0;
-    while (j<decision_rule.inputEntry.length && rule_fulffiled) {
-      const unary_tests: DMN_UnaryTests =  decision_rule.inputEntry[j];
-      const text: string|undefined = input[j].label.toLocaleLowerCase();
-      if (unary_tests.text !== "" && text) {
-        const context = {[text]: input_data[text]};
-        
-        console.log(`${text} =? ${unary_tests.text}`, `{${text}: ${input_data[text]}}`);
-        let evaluation: boolean|null = unaryTest(`${text} = ${unary_tests.text}`, context);
-        if (evaluation === null)
-          evaluation = evaluate(`${text} ${unary_tests.text}`, context);
-        console.log("evaluation: ", evaluation);
-        if (!evaluation)
-          rule_fulffiled = false;
-      }
-      j++;
-    }
-    if (rule_fulffiled) {
-      console.log("Out: ", me.name, input_data, decision_rule.outputEntry[0].text.replace('"', "").replace('"', ""));
-      
-      return {[me.name.toLocaleLowerCase()]: decision_rule.outputEntry[0].text.replace('"', "").replace('"', "")};
-    }
-  }
-  return null;
+function toCamelCase(str: string): string {
+  // Using replace method with regEx
+  return str.replace(/(?:^\w|[A-Z]|\b\w)/g, function (word, index) {
+      return index == 0 ? word.toLowerCase() : word.toUpperCase();
+  }).replace(/\s+/g, '');
 }
 
 function evaluateDMN() { 
@@ -103,16 +57,79 @@ function evaluateDMN() {
   
   const root: DMN_Definitions = dmn_data.me;
   console.log(root);
-  
-  let output_data: {[id: string]: string} = {};
+
+  // Marqueur pour les décisions déjà évaluées
+  const checked: {[id: string]: boolean} = {};
   root.drgElement.forEach((me: ModdleElement) => {
-    if (is_DMN_Decision(me)) {
-      console.log("--------------------");
-      
-      output_data = {...output_data, ...evaluateMe(me, input_data)};
-    }
+    checked[me.id] = false;
   });
 
+  function evaluateMe(me: ModdleElement, input_data: {[id: string]: string[]}): {[id: string]: string[]} {
+    // console.log(me);
+    if (checked[me.id])
+      return {};
+    checked[me.id] = true;
+  
+    if (!is_DMN_Decision(me))
+      return {};
+    
+    // Recherche des données d'entrée
+    me.informationRequirement?.forEach((me: DMN_InformationRequirement) => {
+      if (!me.requiredDecision)
+        return;  
+      const refId: string|null = me.requiredDecision.href.slice(1);
+  
+      if (!input_data[refId]) {
+        const refMe: ModdleElement|undefined = root.drgElement.find((me: ModdleElement) => me.id === refId);
+        if (refMe) {
+          if (is_DMN_Decision(refMe))
+            input_data = {...input_data, ...evaluateMe(refMe, input_data)};
+        }
+      }
+    });
+  
+    const {input, rule} = me.decisionLogic;
+    const output: {[id: string]: string[]} = {};
+    
+    // Evaluation des règles
+    rule.forEach((decision_rule: DMN_DecisionRule) => {
+      let rule_fulffiled: boolean = true;
+      let j=0;
+      while (j<decision_rule.inputEntry.length && rule_fulffiled) {
+        const unary_tests: DMN_UnaryTests =  decision_rule.inputEntry[j];
+        const text: string|undefined = toCamelCase(input[j].label);
+        if (unary_tests.text !== "" && text) {
+          const context = {[text]: input_data[text]};
+          
+          console.log(`${text} =? ${unary_tests.text}`, `{${text}: ${input_data[text]}}`);
+          let evaluation: boolean|null = unaryTest(`${text} = ${unary_tests.text}`, context);
+          if (evaluation === null)
+            evaluation = evaluate(`${text} ${unary_tests.text}`, context);
+          console.log("evaluation: ", evaluation);
+          
+          if (!evaluation)
+            rule_fulffiled = false;
+        }
+        j++;
+      }
+      if (rule_fulffiled) {
+        if (!output[me.id])
+          output[me.id] = [];
+        output[me.id].push(decision_rule.outputEntry[0].text.replace('"', "").replace('"', ""));
+        console.log("out:", me.id, output);
+      }
+    });
+    return output;
+  }
+
+  // Parcours en profondeur des décisions
+  let output_data: {[id: string]: string[]} = {};
+  root.drgElement.forEach((me: ModdleElement) => {
+    if (!checked[me.id])
+      output_data = {...output_data, ...evaluateMe(me, input_data)};
+  });
+
+  // Affichage des données de sortie
   viewJSON("output", JSON.stringify(output_data));
   window.history.replaceState({
     ...window.history.state,
