@@ -39,6 +39,7 @@
         DMN viewer
       </div>
       <div 
+        id="dmn-card"
         class="card-body bg-light overflow-scroll p-2"
         onmouseenter="document.getElementById('scroll-overlay').hidden = false;"
         onmouseleave="document.getElementById('scroll-overlay').hidden = true;"
@@ -54,17 +55,15 @@
   
     <div class="row">
       <div class="col">
-        <div class="card rounded-0 rounded-top bg-dark-subtle" style="height: 250px;">
+        <div id="input-card" class="card rounded-0 rounded-top bg-dark-subtle" style="height: 250px;">
             <div class="card-header">JSON Input</div>
             <div class="card-body overflow-auto">
-              <code>
-                <pre id="input"></pre>
-              </code>
+              <code><div id="input"></div></code>
             </div>
           </div>
         </div>
       <div class="col">
-        <div class="card rounded-0 rounded-top bg-dark-subtle" style="height: 250px;">
+        <div id="output-card" class="card rounded-0 rounded-top bg-dark-subtle" style="height: 250px;">
           <div class="card-header">JSON Output</div>
           <div class="card-body overflow-auto">
             <div id="download-overlay" class="position-fixed z-3" hidden>

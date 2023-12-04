@@ -1,6 +1,6 @@
 import { DMN_data } from "./DMN-JS"
 
-export class Model {
+export class App_Model {
   private _dmn_data: DMN_data|null = null;
   private _input_data: {[id: string]: string[]}|null = null;
   private _output_data: {[id: string]: string[]}|null = null;

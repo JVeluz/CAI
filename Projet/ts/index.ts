@@ -1,5 +1,5 @@
-import { Controller } from "./controller";
-import { Model } from "./model";
-import { View } from "./view";
+import { App_Controller } from "./App_Controller";
+import { App_Model } from "./App_Model";
+import { App_View } from "./App_View";
 
-new Controller(new Model(), new View());
+new App_Controller(new App_Model(), new App_View());
