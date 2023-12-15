@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<semantic:definitions xmlns:semantic="https://www.omg.org/spec/DMN/20191111/MODEL/"
+                      xmlns:feel="http://www.omg.org/spec/FEEL/20140401"
+                      xmlns:tc="http://www.omg.org/spec/DMN/20160719/testcase"
+                      xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                      namespace="http://www.redhat.com/_c7328033-c355-43cd-b616-0aceef80e52a" 
+                      name="dmn-movieticket-ageclassification" 
+                      id="_99">
+  <semantic:extensionElements/>
+  <semantic:inputData displayName="Age" id="_1" name="Age">
+    <semantic:variable id="_2" name="Age" typeRef="feel:number"/>
+  </semantic:inputData>
+  <semantic:decision displayName="AgeClassification" id="_3" name="AgeClassification">
+    <semantic:variable id="_4" name="AgeClassification" typeRef="feel:string"/>
+    <semantic:informationRequirement>
+      <semantic:requiredInput href="#_1"/>
+    </semantic:informationRequirement>
+    <semantic:decisionTable id="_5" outputLabel="AgeClassification">
+      <semantic:input id="_6">
+        <semantic:inputExpression typeRef="feel:number">
+          <semantic:text>Age</semantic:text>
+        </semantic:inputExpression>
+      </semantic:input>
+      <semantic:output id="_7"/>
+      <semantic:rule id="_8">
+        <semantic:inputEntry id="_9">
+          <semantic:text>&lt; 13</semantic:text>
+        </semantic:inputEntry>
+        <semantic:outputEntry id="_10">
+          <semantic:text>"Child"</semantic:text>
+        </semantic:outputEntry>
+      </semantic:rule>
+      <semantic:rule id="_11">
+        <semantic:inputEntry id="_12">
+          <semantic:text>[13..65)</semantic:text>
+        </semantic:inputEntry>
+        <semantic:outputEntry id="_13">
+          <semantic:text>"Adult"</semantic:text>
+        </semantic:outputEntry>
+      </semantic:rule>
+      <semantic:rule id="_14">
+        <semantic:inputEntry id="_15">
+          <semantic:text>&gt;= 65</semantic:text>
+        </semantic:inputEntry>
+        <semantic:outputEntry id="_16">
+          <semantic:text>"Senior"</semantic:text>
+        </semantic:outputEntry>
+      </semantic:rule>
+    </semantic:decisionTable>
+  </semantic:decision>
+</semantic:definitions>
