@@ -140,9 +140,9 @@ export class App_Controller {
         case "dmn":
           await this._readDMN(file);
           this._view.renderDMN(this._model);
+          this._view.renderInput(this._model);
           break;
         case "json":
-          await this._readInput(file);
           this._view.renderInput(this._model);
           break;
         default:
@@ -162,15 +162,6 @@ export class App_Controller {
     const dmn_data: DMN_data = {...dmn_file, me: rootElement};
     
     this._model.dmn_data = dmn_data;
-  }
-  private async _readInput(file: File) {
-    const json: string = await file.text();
-    try {
-      const input_data = JSON.parse(json);
-      this._model.input_data = input_data;
-    } catch (error) {
-      console.error(error);
-    }
   }
 
   private _updateOutput() {

@@ -1,4 +1,5 @@
 import { App_Model } from "./App_Model";
+import { ModdleElement, is_DMN_Decision, is_DMN_Definitions } from "./DMN-JS";
 
 declare const DmnJS: any;
 
@@ -32,14 +33,44 @@ export class App_View {
     }
   }
   public renderInput(model: App_Model) {
-    const input_data = model.input_data;
-    if (!input_data) {
-      this._elements.input.innerHTML = "No input data";
-      this._elements.input_card.classList.add("border-warning");
+    this._elements.input.innerHTML = "";
+
+    const root: ModdleElement = model.dmn_data!.me;
+    if (!is_DMN_Definitions(root))
       return;
+
+    for (const me of root.drgElement) {
+      if (!is_DMN_Decision(me))
+        continue;
+      
+      for (const input_clause of me.decisionLogic.input) {
+        const input_name: string = input_clause.inputExpression!.text || "";
+        const input_type: string = input_clause.inputExpression!.typeRef || "";
+        
+        const tr: HTMLTableRowElement = document.createElement("tr");
+        const td_name: HTMLTableCellElement = document.createElement("td");
+        const td_type: HTMLTableCellElement = document.createElement("td");
+        const td_value: HTMLTableCellElement = document.createElement("td");
+        const td_input_group: HTMLElement = document.createElement("div");
+        const td_input: HTMLInputElement = document.createElement("input");
+        
+        td_input_group.classList.add("input-group", "input-group-sm");
+        td_input.classList.add("form-control");
+        td_input.setAttribute("type", "text");
+        
+        td_name.innerHTML = input_name;
+        td_type.innerHTML = input_type;
+        
+        td_input.addEventListener("input", (ev: Event) => console.log(ev));
+  
+        td_input_group.appendChild(td_input);
+        td_value.appendChild(td_input_group);
+        tr.appendChild(td_name);
+        tr.appendChild(td_type);
+        tr.appendChild(td_value);
+        this._elements.input.appendChild(tr);
+      }
     }
-    this._elements.input.innerHTML = JSON.stringify(input_data);
-    this._elements.input_card.classList.remove("border-warning");
   }
   public renderOutput(model: App_Model) {
     const output_data = model.output_data;
