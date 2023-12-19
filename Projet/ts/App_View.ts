@@ -1,5 +1,5 @@
 import { App_Model } from "./App_Model";
-import { ModdleElement, is_DMN_Decision, is_DMN_Definitions } from "./DMN/DMN-JS";
+import { DMN_Decision, DMN_Definitions, ModdleElement, is_DMN_Decision, is_DMN_Definitions } from "./DMN/DMN-JS";
 
 declare const DmnJS: any;
 
@@ -10,9 +10,11 @@ export class App_View {
     dmn: document.getElementById("dmn")!,
 
     input_card: document.getElementById("input-card")!,
+    input_table: document.getElementById("input-table")!,
     input: document.getElementById("input")!,
     
     output_card: document.getElementById("output-card")!,
+    output_table: document.getElementById("output-table")!,
     output: document.getElementById("output")!,
   };
 
@@ -32,8 +34,10 @@ export class App_View {
       console.error(error);
     }
   }
+
   public renderInput(model: App_Model) {
     this._elements.input.innerHTML = "";
+    this._elements.input_table.hidden = false;
 
     const root: ModdleElement = model.dmn!.dmn_data!.me;
     if (!is_DMN_Definitions(root))
@@ -42,7 +46,7 @@ export class App_View {
     for (const me of root.drgElement) {
       if (!is_DMN_Decision(me))
         continue;
-      
+            
       for (const input_clause of me.decisionLogic.input) {
         const input_name: string = input_clause.inputExpression!.text || "";
         const input_type: string = input_clause.inputExpression!.typeRef || "";
@@ -52,13 +56,36 @@ export class App_View {
         const td_type: HTMLTableCellElement = document.createElement("td");
         const td_value: HTMLTableCellElement = document.createElement("td");
         const td_input_group: HTMLElement = document.createElement("div");
-        const td_input: HTMLInputElement = document.createElement("input");
+        
+        let td_input: HTMLInputElement|HTMLSelectElement = document.createElement("input");
         
         td_input_group.classList.add("input-group", "input-group-sm");
         td_input.classList.add("form-control");
-        td_input.setAttribute("type", "text");
-        td_input.setAttribute("id", input_name);
-        td_input.setAttribute("value", model.input_data?.[input_name]?.join(", ") || "");
+
+        td_input.id = input_name;
+        td_input.value = model.input_data?.[input_name]?.join(", ") || "";
+        switch (input_type) {
+          case "integer":
+            td_input.type = "number";
+            break;
+          case "long":
+            td_input.setAttribute("type", "number");
+            break;
+          case "double":
+            td_input.setAttribute("type", "number");
+            break;
+          case "boolean":
+            td_input = document.createElement("select");
+            td_input.classList.add("form-select");
+            td_input.innerHTML = `
+              <option value="true" selected>true</option>
+              <option value="false">false</option>
+            `;
+            break;
+          default:
+            td_input.setAttribute("type", "text");
+            break;
+        }
 
         td_name.innerHTML = input_name;
         td_type.innerHTML = input_type;
@@ -72,28 +99,40 @@ export class App_View {
       }
     }
   }
+  
   public renderOutput(model: App_Model) {
     this._elements.output.innerHTML = "";
+    this._elements.output_table.hidden = false;
 
-    const output_data = model.output_data;
-    if (!output_data) {
-      this._elements.output.innerHTML = "No output data";
-      this._elements.output.classList.add("border-danger");
-      return;
-    }
-    this._elements.output.classList.remove("border-danger");
-    
-    for (const [key, value] of Object.entries(output_data)) {
+    const root: DMN_Definitions = <DMN_Definitions>model.dmn!.dmn_data!.me;
+    const output_data = model.output_data!;
+
+    for (const me of root.drgElement) {
+      if (!is_DMN_Decision(me))
+        continue;
+
+      const output_name: string = me.name || "";
+      const hit_policy: string = me.decisionLogic!.hitPolicy || "UNIQUE";      
+      const output_type: string = me.decisionLogic.output[0].typeRef || "";
+      const output_value: string = output_data[output_name].join(", ");
+      
       const tr: HTMLTableRowElement = document.createElement("tr");
       const td_name: HTMLTableCellElement = document.createElement("td");
+      const td_hit_policy: HTMLTableCellElement = document.createElement("td");
+      const td_type: HTMLTableCellElement = document.createElement("td");
       const td_value: HTMLTableCellElement = document.createElement("td");
       
-      td_name.innerHTML = key;
-      td_value.innerHTML = value.join(", ");
-
+      td_name.innerHTML = output_name;
+      td_hit_policy.innerHTML = hit_policy;
+      td_type.innerHTML = output_type;
+      td_value.innerHTML = output_value;
+  
       tr.appendChild(td_name);
+      tr.appendChild(td_hit_policy);
+      tr.appendChild(td_type);
       tr.appendChild(td_value);
       this._elements.output.appendChild(tr);
     }
+    
   }
 }

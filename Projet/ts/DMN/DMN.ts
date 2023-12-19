@@ -16,6 +16,7 @@ export class DMN {
     // console.log("in:", me.name, input_data);
     
     const {input, rule} = me.decisionLogic;
+    const hit_policy: string = me.decisionLogic.hitPolicy || "UNIQUE";
 
     // Evaluation des règles
     const result: string[] = [];
@@ -47,7 +48,19 @@ export class DMN {
         // console.log("out:", output[0].name, result);
       }
     });
-    return result;
+
+    switch (hit_policy) {
+      case "UNIQUE":
+        console.log("UNIQUE result: ", result);
+        
+        return [result[0]];
+      case "FIRST":
+        return [result[0]];
+      case "PRIORITY":
+        return [result[0]];
+      default:
+        return result;
+    }
   }
 
   public evaluate(input_data: {[id: string]: string[]}): {[id: string]: string[]}|null {
