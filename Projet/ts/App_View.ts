@@ -57,11 +57,11 @@ export class App_View {
         td_input_group.classList.add("input-group", "input-group-sm");
         td_input.classList.add("form-control");
         td_input.setAttribute("type", "text");
-        
+        td_input.setAttribute("id", input_name);
+        td_input.setAttribute("value", model.input_data?.[input_name]?.join(", ") || "");
+
         td_name.innerHTML = input_name;
         td_type.innerHTML = input_type;
-        
-        td_input.addEventListener("input", (ev: Event) => console.log(ev));
   
         td_input_group.appendChild(td_input);
         td_value.appendChild(td_input_group);

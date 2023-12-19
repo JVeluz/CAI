@@ -10,6 +10,11 @@ export class App_Controller {
   private _view: App_View;
 
   private _addListeners() {
+    document.getElementById("input")!.addEventListener("input", () => {
+      this._readInput();
+      this._updateOutput();
+    });
+
     document.getElementById("file-upload")!.addEventListener("change", async (ev: Event) => {
       const target: any = ev.target;  
       const files: FileList = target.files;  
@@ -29,10 +34,10 @@ export class App_Controller {
       this._updateOutput();
     });
     window.addEventListener("load", () => {
-      if (this._model.dmn_data?.file_content)
+      if (this._model.dmn_data?.file_content) {
         this._view.renderDMN(this._model);
-      if (this._model.input_data)
         this._view.renderInput(this._model);
+      }
       this._updateOutput();
     });
   }
@@ -44,14 +49,14 @@ export class App_Controller {
     this._addListeners();
   }
 
-  private _evaluateMe(me: DMN_Decision, input_data: {[id: string]: string[]}): {[id: string]: string[]} {
+  private _evaluateMe(me: DMN_Decision, input_data: {[id: string]: string[]}): string[] {
     // console.log(me);
-  
+    console.log("in:", me.name, input_data);
+    
     const {input, output, rule} = me.decisionLogic;
-    const output_name: string = output[0].name || "";
 
     // Evaluation des règles
-    const result: {[id: string]: string[]} = {[output_name]: []};
+    const result: string[] = [];
     rule.forEach((decision_rule: DMN_DecisionRule) => {
       let rule_fulffiled: boolean = true;
       let j=0;
@@ -76,8 +81,8 @@ export class App_Controller {
         j++;
       }
       if (rule_fulffiled) {
-        result[output_name].push(decision_rule.outputEntry[0].text.replace('"', "").replace('"', ""));
-        // console.log("out:", output[0].name, result);
+        result.push(decision_rule.outputEntry[0].text.replace('"', "").replace('"', ""));
+        console.log("out:", output[0].name, result);
       }
     });
     return result;
@@ -85,7 +90,7 @@ export class App_Controller {
 
   private _evaluateDMN(): {[id: string]: string[]} {
     const dmn_data = this._model.dmn_data!;
-    const input_data = this._model.input_data!;
+    let input_data = this._model.input_data!;
     
     const root: ModdleElement = dmn_data.me;
     // console.log(root);
@@ -99,9 +104,9 @@ export class App_Controller {
     });
 
     // Fonction récursive d'évaluation d'une décision
-    const evaluateMe = (me: DMN_Decision, input_data: {[id: string]: string[]}): {[id: string]: string[]} => {
+    const evaluateMe = (me: DMN_Decision): string[] => {
       if (checked[me.id])
-        return {};
+        return [];
       checked[me.id] = true;
       
       // Recherche des données d'entrée
@@ -110,12 +115,12 @@ export class App_Controller {
           return;
 
         const refId: string|null = me.requiredDecision.href.slice(1);
-        if (!input_data[refId]) {
-          const refMe: ModdleElement|undefined = root.drgElement.find((me: ModdleElement) => me.id === refId);
-          if (refMe) {
-            if (is_DMN_Decision(refMe))
-              input_data = {...input_data, ...evaluateMe(refMe, input_data)};
-          }
+        const refMe: ModdleElement|undefined = root.drgElement.find((me: ModdleElement) => me.id === refId);
+        const output_name: string = (refMe as DMN_Decision).decisionLogic.output[0].name || "";
+        const input = input_data[output_name];
+        
+        if (refMe && is_DMN_Decision(refMe) && input.length === 0) {
+          input_data[output_name] = evaluateMe(refMe);
         }
       });
       return this._evaluateMe(me, input_data);
@@ -124,8 +129,9 @@ export class App_Controller {
     // Parcours en profondeur des décisions
     let output_data: {[id: string]: string[]} = {};
     root.drgElement.forEach((me: ModdleElement) => {
-      if (!checked[me.id] && is_DMN_Decision(me))
-        output_data = {...output_data, ...evaluateMe(me, input_data)};
+      if (is_DMN_Decision(me)) {
+        output_data[me.name] = evaluateMe(me);
+      }
     });
     return output_data;
   }
@@ -143,6 +149,7 @@ export class App_Controller {
           this._view.renderInput(this._model);
           break;
         case "json":
+          await this._readJSON(file);
           this._view.renderInput(this._model);
           break;
         default:
@@ -162,6 +169,23 @@ export class App_Controller {
     const dmn_data: DMN_data = {...dmn_file, me: rootElement};
     
     this._model.dmn_data = dmn_data;
+  }
+
+  private async _readJSON(file: File) {
+    const json: string = await file.text();
+
+    this._model.input_data = JSON.parse(json);    
+  }
+
+  private _readInput() {
+    const input_data: {[id: string]: string[]} = {};
+    const input: HTMLInputElement[] = Array.from(document.querySelectorAll("#input input"));
+    input.forEach((input: HTMLInputElement) => {
+      const id: string = input.id;
+      const value: string = input.value;
+      input_data[id] = value===""? []:[value];
+    });
+    this._model.input_data = input_data;
   }
 
   private _updateOutput() {
