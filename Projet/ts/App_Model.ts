@@ -1,7 +1,7 @@
-import { DMN_data } from "./DMN-JS"
+import { DMN } from "./DMN/DMN"
 
 export class App_Model {
-  private _dmn_data: DMN_data|null = null;
+  private _dmn: DMN|null = null;
   private _input_data: {[id: string]: string[]}|null = null;
   private _output_data: {[id: string]: string[]}|null = null;
 
@@ -9,11 +9,11 @@ export class App_Model {
     this._load();
   }
 
-  public get dmn_data(): DMN_data|null {
-    return this._dmn_data;
+  public get dmn(): DMN|null {
+    return this._dmn;
   }
-  public set dmn_data(dmn_data: DMN_data|null) {
-    this._dmn_data = dmn_data;
+  public set dmn(dmn: DMN|null) {
+    this._dmn = dmn;
     this._save();
   }
 
@@ -35,7 +35,7 @@ export class App_Model {
 
   private _save() {
     window.history.pushState({
-      dmn_data: this.dmn_data,
+      dmn_data: this.dmn!.dmn_data,
       input_data: this.input_data,
       output_data: this.output_data
     }, "");
@@ -43,7 +43,9 @@ export class App_Model {
   private _load() {
     const state: any = window.history.state;
     if (state) {
-      this.dmn_data = state.dmn_data;
+      const dmn: DMN = new DMN();
+      dmn.dmn_data = state.dmn_data;
+      this.dmn = dmn;
       this.input_data = state.input_data;
       this.output_data = state.output_data;
     }
