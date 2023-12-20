@@ -3,11 +3,9 @@ VELUZ Jesse et ARRUZAS Simon
 
 ## Exécuter l'application
 1. Ouvrir un terminale à la racine du projet
-1. **Installation des dépendances :** 
-```npm install```
-2. **Build :** 
-```npm run build```
-3. **Lancement :** Avec l'extension live server clique droit sur index.html => "open with live server"
+1. `npm install`
+2. `npm run build`
+3. Avec l'extension live server clique droit sur index.html => "open with live server"
 
 
 ## Fonctionnement de l'application
