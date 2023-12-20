@@ -6,8 +6,8 @@ import { App_View } from "./App_View";
 new App_Controller(new App_Model(), new App_View());
 
 function test() {
+  console.log("test():");
   const evaluation: boolean|null = unaryTest("[13..65)", {'?': ['14']});
-  console.log("test:", evaluation);
+  console.log(evaluation);
 }
-
 test();
