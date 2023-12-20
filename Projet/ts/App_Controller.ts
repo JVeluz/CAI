@@ -1,7 +1,7 @@
-import { DMN_data, DMN_file, ModdleElement } from "./DMN/DMN-JS";
+import { DMN_data, DMN_file, ModdleElement } from "./dmn/DMN-JS";
 import { App_Model } from "./App_Model";
 import { App_View } from "./App_View";
-import { DMN } from "./DMN/DMN";
+import { DMN } from "./dmn/DMN";
 
 declare const DmnModdle: any;
 
@@ -19,7 +19,6 @@ export class App_Controller {
       const target: any = ev.target;  
       const files: FileList = target.files;  
       await this._fileHandler(files);
-      this._updateOutput();
     });
 
     window.addEventListener("dragover", (ev: DragEvent) => {
@@ -31,14 +30,14 @@ export class App_Controller {
         return;
       const files: FileList = ev.dataTransfer.files;  
       await this._fileHandler(files);
-      this._updateOutput();
     });
     window.addEventListener("load", () => {
       if (this._model.dmn) {
         this._view.renderDMN(this._model);
         this._view.renderInput(this._model);
+        if (this._model.input_data)
+          this._updateOutput();
       }
-      this._updateOutput();
     });
   }
 
@@ -93,9 +92,9 @@ export class App_Controller {
   }
 
   private _readInput() {
-    const input_data: {[id: string]: string[]} = {};
-    const input: HTMLInputElement[] = Array.from(document.querySelectorAll("#input input"));
-    input.forEach((input: HTMLInputElement) => {
+    const input_data: {[id: string]: any[]} = {};
+    const input: HTMLInputElement|HTMLSelectElement[] = Array.from(document.querySelectorAll("#input input, #input select"));    
+    input.forEach((input: HTMLInputElement|HTMLSelectElement) => {
       const id: string = input.id;
       const value: string = input.value;
       input_data[id] = value===""? []:[value];
@@ -104,10 +103,11 @@ export class App_Controller {
   }
 
   private _updateOutput() {
-    if (!this._model.dmn || !this._model.input_data)
+    const input_data = this._model.input_data;
+    const dmn: DMN|null = this._model.dmn;
+    if (!dmn || !input_data)
       return;
-    const dmn: DMN = this._model.dmn;
-    const output_data = dmn.evaluate(this._model.input_data);
+    const output_data = dmn.evaluate(input_data);
     this._model.output_data = output_data;
     this._view.renderOutput(this._model);
   }
