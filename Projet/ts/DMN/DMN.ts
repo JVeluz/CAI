@@ -1,4 +1,4 @@
-import { InterpreterContext, evaluate, unaryTest } from "feelin";
+import { InterpreterContext, unaryTest } from "feelin";
 import { DMN_Decision, DMN_DecisionRule, DMN_Definitions, DMN_InformationRequirement, DMN_UnaryTests, DMN_data, ModdleElement, is_DMN_Decision } from "./DMN-JS";
 
 export class DMN {
