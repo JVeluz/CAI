@@ -1,4 +1,4 @@
-import { evaluate, unaryTest } from "feelin";
+import { InterpreterContext, evaluate, unaryTest } from "feelin";
 import { DMN_Decision, DMN_DecisionRule, DMN_Definitions, DMN_InformationRequirement, DMN_UnaryTests, DMN_data, ModdleElement, is_DMN_Decision } from "./DMN-JS";
 
 export class DMN {
@@ -27,14 +27,21 @@ export class DMN {
         const unary_tests: DMN_UnaryTests = decision_rule.inputEntry[j];
         const text: string = input[j].inputExpression!.text;
         if (unary_tests.text !== "" && text) {
-          const context: {[text: string]: string[]} = {[text]: input_data[text]};
-
-          // console.log(`${text} =? ${unary_tests.text}`, `{${text}: ${input_data[text]}}`);
-          let evaluation: boolean|null = unaryTest(`${text} = ${unary_tests.text}`, context);
-          if (evaluation === null) {
-            try {
-              evaluation = evaluate(`${text} ${unary_tests.text}`, context);
-            } catch {}
+          
+          let evaluation: boolean = false;
+          
+          if (input_data[text][0] == "true" || input_data[text][0] == "false") {
+            const expression: string = 'a = b';
+            const context: InterpreterContext = {
+              a: unary_tests.text,
+              b: input_data[text][0]
+            };
+            evaluation = unaryTest(expression, context);
+          }
+          else {
+            const expression: string = unary_tests.text;
+            const context: {[text: string]: any[]} = { "?": input_data[text] };
+            evaluation = unaryTest(expression, context);
           }
           
           // console.log("evaluation: ", evaluation); 
@@ -51,8 +58,6 @@ export class DMN {
 
     switch (hit_policy) {
       case "UNIQUE":
-        console.log("UNIQUE result: ", result);
-        
         return [result[0]];
       case "FIRST":
         return [result[0]];

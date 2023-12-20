@@ -1,4 +1,4 @@
-import { DMN } from "./DMN/DMN"
+import { DMN } from "./dmn/DMN"
 
 export class App_Model {
   private _dmn: DMN|null = null;
