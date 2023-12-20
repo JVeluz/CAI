@@ -1,5 +1,5 @@
 import { App_Model } from "./App_Model";
-import { DMN_Decision, DMN_Definitions, ModdleElement, is_DMN_Decision, is_DMN_Definitions } from "./DMN/DMN-JS";
+import { DMN_Definitions, ModdleElement, is_DMN_Decision, is_DMN_Definitions } from "./dmn/DMN-JS";
 
 declare const DmnJS: any;
 
@@ -48,8 +48,8 @@ export class App_View {
         continue;
             
       for (const input_clause of me.decisionLogic.input) {
-        const input_name: string = input_clause.inputExpression!.text || "";
-        const input_type: string = input_clause.inputExpression!.typeRef || "";
+        const input_name: string = input_clause.inputExpression!.text || "Unknown";
+        const input_type: string = input_clause.inputExpression!.typeRef || "Unknown";
         
         const tr: HTMLTableRowElement = document.createElement("tr");
         const td_name: HTMLTableCellElement = document.createElement("td");
@@ -62,11 +62,10 @@ export class App_View {
         td_input_group.classList.add("input-group", "input-group-sm");
         td_input.classList.add("form-control");
 
-        td_input.id = input_name;
-        td_input.value = model.input_data?.[input_name]?.join(", ") || "";
         switch (input_type) {
           case "integer":
             td_input.type = "number";
+            td_input.setAttribute("type", "number");
             break;
           case "long":
             td_input.setAttribute("type", "number");
@@ -78,7 +77,7 @@ export class App_View {
             td_input = document.createElement("select");
             td_input.classList.add("form-select");
             td_input.innerHTML = `
-              <option value="true" selected>true</option>
+              <option value="true">true</option>
               <option value="false">false</option>
             `;
             break;
@@ -86,6 +85,9 @@ export class App_View {
             td_input.setAttribute("type", "text");
             break;
         }
+        td_input.id = input_name;
+        if (input_type !== "boolean")
+          td_input.value = model.input_data?.[input_name]?.join(", ") || "";        
 
         td_name.innerHTML = input_name;
         td_type.innerHTML = input_type;
@@ -111,9 +113,9 @@ export class App_View {
       if (!is_DMN_Decision(me))
         continue;
 
-      const output_name: string = me.name || "";
+      const output_name: string = me.name || "Unknown";
       const hit_policy: string = me.decisionLogic!.hitPolicy || "UNIQUE";      
-      const output_type: string = me.decisionLogic.output[0].typeRef || "";
+      const output_type: string = me.decisionLogic.output[0].typeRef || "Unknown";
       const output_value: string = output_data[output_name].join(", ");
       
       const tr: HTMLTableRowElement = document.createElement("tr");
